@@ -3925,7 +3925,7 @@ async function doApiSync(){
   const btn=document.getElementById('apiSyncBtn');
   if(btn){btn.textContent='⏳ Sync...';btn.disabled=true;}
   try{
-    const res=await fetch('https://corsproxy.io/?url='+encodeURIComponent('https://api.football-data.org/v4/competitions/2000/matches?status=FINISHED'),{
+    const res=await fetch('https://cdm26-proxy.rghiouitariq.workers.dev',{
       headers:{'X-Auth-Token':key}
     });
     if(res.status===401){toast('❌ Clé API invalide');return;}
