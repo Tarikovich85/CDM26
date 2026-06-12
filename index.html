@@ -3933,6 +3933,8 @@ async function doApiSync(){
     if(!res.ok){toast('❌ Erreur API '+res.status);return;}
     const data=await res.json();
     let updated=0, updatedKO=0;
+    const totalReceived=(data.matches||[]).length;
+    const finishedReceived=(data.matches||[]).filter(m=>m.score&&m.score.fullTime&&m.score.fullTime.home!==null).length;
 
     // ── Phase de groupes ──────────────────────────────────
     (data.matches||[]).forEach(function(match){
@@ -4032,14 +4034,14 @@ async function doApiSync(){
     localStorage.setItem('cdm26-sync-res',now);
     const info=document.getElementById('apiSyncInfo');
     const total=updated+updatedKO;
-    if(info)info.textContent='Dernière sync : '+fmtDate(now)+' — '+updated+' groupes, '+updatedKO+' KO';
+    if(info)info.textContent='Dernière sync : '+fmtDate(now)+' — '+updated+' groupes, '+updatedKO+' KO ('+totalReceived+' matchs reçus, '+finishedReceived+' terminés)';
     // refresh current view
     const id=(document.querySelector('.sec.on')||{}).id;
     if(id==='resultats')renderResultats();
     if(id==='scores')renderPronos();
     if(id==='home')renderHome();
     updateApiBtn(total);
-    toast('✅ '+updated+' groupe(s) · '+updatedKO+' KO mis à jour');
+    toast('✅ '+updated+' groupe(s) · '+updatedKO+' KO · '+totalReceived+' matchs reçus ('+finishedReceived+' terminés)');
   }catch(e){
     toast('❌ Erreur réseau : '+(e.message||e));
   }finally{
