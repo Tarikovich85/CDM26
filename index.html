@@ -3863,9 +3863,60 @@ function normName(s){
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[^a-z0-9 ]/g,' ').trim();
 }
+// Dictionnaire de traduction noms FR -> noms API (anglais) pour matching résultats
+const TEAM_ALIASES={
+  'mexique':['mexico'],
+  'afrique du sud':['south africa'],
+  'coree du sud':['south korea','korea republic','korea dpr'],
+  'tchequie':['czech republic','czechia'],
+  'canada':['canada'],
+  'bosnie herzegovine':['bosnia and herzegovina','bosnia herzegovina'],
+  'qatar':['qatar'],
+  'suisse':['switzerland'],
+  'bresil':['brazil'],
+  'maroc':['morocco'],
+  'haiti':['haiti'],
+  'ecosse':['scotland'],
+  'etats unis':['united states','usa'],
+  'australie':['australia'],
+  'paraguay':['paraguay'],
+  'turquie':['turkey','turkiye'],
+  'allemagne':['germany'],
+  'curacao':['curacao'],
+  'equateur':['ecuador'],
+  'pays bas':['netherlands','holland'],
+  'japon':['japan'],
+  'suede':['sweden'],
+  'tunisie':['tunisia'],
+  'egypte':['egypt'],
+  'iran':['iran','ir iran'],
+  'nouvelle zelande':['new zealand'],
+  'espagne':['spain'],
+  'arabie saoudite':['saudi arabia'],
+  'cap vert':['cape verde','cabo verde'],
+  'uruguay':['uruguay'],
+  'france':['france'],
+  'irak':['iraq'],
+  'norvege':['norway'],
+  'senegal':['senegal'],
+  'algerie':['algeria'],
+  'argentine':['argentina'],
+  'autriche':['austria'],
+  'jordanie':['jordan'],
+  'portugal':['portugal'],
+  'colombie':['colombia'],
+  'ouzbekistan':['uzbekistan'],
+  'rd congo':['dr congo','congo dr','democratic republic of the congo'],
+  'angleterre':['england'],
+  'croatie':['croatia'],
+  'ghana':['ghana'],
+  'panama':['panama'],
+  'cote d ivoire':['ivory coast','cote d ivoire'],
+};
 function fuzzyTeam(our, api){
   const a=normName(our), b=normName(api);
   if(a===b)return true;
+  if(TEAM_ALIASES[a]&&TEAM_ALIASES[a].includes(b))return true;
   const wa=a.split(' '), wb=b.split(' ');
   return wa.some(w=>w.length>3&&b.includes(w)) || wb.some(w=>w.length>3&&a.includes(w));
 }
