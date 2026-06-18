@@ -15,7 +15,7 @@
 // ── PWA Service Worker inline ────────────────────────────
 if('serviceWorker' in navigator){
   const swCode=`
-const CACHE='cdm26-v31';
+const CACHE='cdm26-v32';
 const ASSETS=[location.pathname||'/'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
@@ -3870,7 +3870,7 @@ const TEAM_ALIASES={
   'coree du sud':['south korea','korea republic','korea dpr'],
   'tchequie':['czech republic','czechia'],
   'canada':['canada'],
-  'bosnie herzegovine':['bosnia and herzegovina','bosnia herzegovina'],
+  'bosnie herzegovine':['bosnia and herzegovina','bosnia herzegovina','bosnia'],
   'qatar':['qatar'],
   'suisse':['switzerland'],
   'bresil':['brazil'],
@@ -3893,7 +3893,7 @@ const TEAM_ALIASES={
   'nouvelle zelande':['new zealand'],
   'espagne':['spain'],
   'arabie saoudite':['saudi arabia'],
-  'cap vert':['cape verde','cabo verde'],
+  'cap vert':['cape verde','cabo verde','cape verde islands'],
   'uruguay':['uruguay'],
   'france':['france'],
   'irak':['iraq'],
@@ -3912,6 +3912,7 @@ const TEAM_ALIASES={
   'ghana':['ghana'],
   'panama':['panama'],
   'cote d ivoire':['ivory coast','cote d ivoire'],
+  'belgique':['belgium'],
 };
 function fuzzyTeam(our, api){
   const a=normName(our), b=normName(api);
@@ -3991,11 +3992,21 @@ async function doApiSync(){
     (data.matches||[]).forEach(function(match){
       if(match.stage&&match.stage!=='GROUP_STAGE')return;
       if(match.score&&match.score.fullTime&&match.score.fullTime.home!==null){
+        const apiH=match.homeTeam.name||match.homeTeam.shortName||match.homeTeam.tla||'';
+        const apiA=match.awayTeam.name||match.awayTeam.shortName||match.awayTeam.tla||'';
         const m=ALL.find(function(x){
-          return fuzzyTeam(x.h,match.homeTeam.name||match.homeTeam.shortName)
-              && fuzzyTeam(x.a,match.awayTeam.name||match.awayTeam.shortName);
+          return fuzzyTeam(x.h,apiH) && fuzzyTeam(x.a,apiA);
         });
         if(m){REAL[m.id]={h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};updated++;}
+        else{
+          // Fallback: tentative avec shortName si name a échoué
+          const apiH2=match.homeTeam.shortName||match.homeTeam.name||'';
+          const apiA2=match.awayTeam.shortName||match.awayTeam.name||'';
+          if(apiH2!==apiH||apiA2!==apiA){
+            const m2=ALL.find(function(x){return fuzzyTeam(x.h,apiH2)&&fuzzyTeam(x.a,apiA2);});
+            if(m2){REAL[m2.id]={h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};updated++;}
+          }
+        }
       }
     });
     localStorage.setItem('cdm26-real',JSON.stringify(REAL));
@@ -4085,7 +4096,20 @@ async function doApiSync(){
     localStorage.setItem('cdm26-sync-res',now);
     const info=document.getElementById('apiSyncInfo');
     const total=updated+updatedKO;
-    if(info)info.textContent='Dernière sync : '+fmtDate(now)+' — '+updated+' groupes, '+updatedKO+' KO ('+totalReceived+' matchs reçus, '+finishedReceived+' terminés)';
+    const nonMappes=finishedReceived-updated;
+    if(info)info.textContent='Dernière sync : '+fmtDate(now)+' — '+updated+' groupes, '+updatedKO+' KO ('+totalReceived+' matchs reçus, '+finishedReceived+' terminés)'+(nonMappes>0?' ⚠️ '+nonMappes+' non mappés':'');
+    // Log debug: matchs non mappés
+    if(nonMappes>0){
+      console.warn('[CDM26] '+nonMappes+' match(s) terminé(s) non mappé(s):');
+      (data.matches||[]).forEach(function(match){
+        if(match.stage&&match.stage!=='GROUP_STAGE')return;
+        if(!match.score||!match.score.fullTime||match.score.fullTime.home===null)return;
+        const apiH=match.homeTeam.name||match.homeTeam.shortName||'';
+        const apiA=match.awayTeam.name||match.awayTeam.shortName||'';
+        const found=ALL.some(function(x){return fuzzyTeam(x.h,apiH)&&fuzzyTeam(x.a,apiA);});
+        if(!found)console.warn('[CDM26] Non mappé: "'+apiH+'" vs "'+apiA+'" — score: '+match.score.fullTime.home+'-'+match.score.fullTime.away);
+      });
+    }
     // refresh current view
     const id=(document.querySelector('.sec.on')||{}).id;
     if(id==='resultats')renderResultats();
