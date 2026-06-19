@@ -7,7 +7,35 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🏆 Coupe du Monde 2026</title>
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json" id="manifestLink">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<script>
+// Génération dynamique du manifest.json via Blob URL (pas de fichier externe requis)
+(function(){
+  var manifest = {
+    name: "CDM 2026 Pronos",
+    short_name: "CDM26",
+    description: "Pronostics Coupe du Monde 2026",
+    start_url: location.pathname || "/CDM26/",
+    scope: location.pathname.replace(/[^/]*$/, '') || "/CDM26/",
+    display: "standalone",
+    background_color: "#060913",
+    theme_color: "#060913",
+    orientation: "portrait-primary",
+    icons: [
+      { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23060913'/><text y='.85em' font-size='72' text-anchor='middle' x='50'>⚽</text></svg>", sizes: "192x192", type: "image/svg+xml" },
+      { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23060913'/><text y='.85em' font-size='72' text-anchor='middle' x='50'>⚽</text></svg>", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+    ],
+    categories: ["sports", "entertainment"],
+    lang: "fr"
+  };
+  try {
+    var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    document.getElementById('manifestLink').href = url;
+  } catch(e) {}
+})();
+</script>
 <meta name="theme-color" content="#060913">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +43,7 @@
 // ── PWA Service Worker inline ────────────────────────────
 if('serviceWorker' in navigator){
   const swCode=`
-const CACHE='cdm26-v31';
+const CACHE='cdm26-v32';
 const ASSETS=[location.pathname||'/'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
@@ -391,7 +419,9 @@ main{flex:1;max-width:1300px;width:100%;margin:0 auto;padding:20px 18px 40px;}
 .win-input{border-color:var(--gold)!important;}
 
 /* ── BRACKET ───────────────────────────────────────────────*/
-.bracket-wrap{overflow-x:auto;padding-bottom:12px;}
+.bracket-wrap{overflow-x:auto;padding-bottom:12px;position:relative;}
+.bracket-scroll-hint{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--muted);padding:6px 0 2px;animation:fadeHint 3s ease-in-out forwards;}
+@keyframes fadeHint{0%{opacity:1}70%{opacity:1}100%{opacity:0;pointer-events:none;}}
 .bracket-grid{display:flex;gap:32px;min-width:max-content;align-items:flex-start;padding-bottom:8px;}.b-col-title{font-family:'Bebas Neue',cursive;font-size:13px;color:var(--muted);text-align:center;letter-spacing:2px;margin-bottom:4px;}.b-team{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:500;}
 .b-team+.b-team{border-top:1px solid var(--border2);}
 .b-score{font-family:'Bebas Neue',cursive;font-size:17px;color:var(--muted);}.b-final .b-score{color:var(--gold);}
@@ -499,6 +529,7 @@ main{flex:1;max-width:1300px;width:100%;margin:0 auto;padding:20px 18px 40px;}
 .api-inp{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;outline:none;margin-bottom:12px;}
 .api-inp:focus{border-color:rgba(76,175,80,.5);}
 .btn-sync{background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);color:#4caf50;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .btn-sync:disabled{opacity:.5;cursor:not-allowed;}
 .btn-sync:hover:not(:disabled){background:rgba(76,175,80,.25);}
 .toggle-row{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;margin-bottom:12px;}
@@ -623,6 +654,10 @@ main{flex:1;max-width:1300px;width:100%;margin:0 auto;padding:20px 18px 40px;}
         <button onclick="openApiPanel()"
           style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);color:#4caf50;border-radius:8px;padding:5px 11px;cursor:pointer;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px">
           ⚡ API</button>
+        <div id="globalSyncBadge" onclick="doApiSync()" title="Cliquer pour synchroniser" style="cursor:pointer;display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-size:10px;color:var(--muted);font-weight:600;min-width:90px;justify-content:center">
+          <span id="globalSyncDot" style="width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;display:inline-block"></span>
+          <span id="globalSyncTxt">Non synchro</span>
+        </div>
       </div>
     </div>
   </div>
@@ -2301,7 +2336,8 @@ function renderPronos(){
     }
 
     const round=ROUNDS.find(r=>r.k===pnBrk)||ROUNDS[0];
-    el.innerHTML=banner+round.ms.map(function(m,i){
+    const scrollHint='<div class="bracket-scroll-hint" id="brkScrollHint" style="margin-bottom:10px">'      +'<span style="font-size:14px">←</span>'      +'<span>Glissez pour naviguer entre les tours</span>'      +'<span style="font-size:14px">→</span>'      +'</div>';
+    el.innerHTML=banner+scrollHint+round.ms.map(function(m,i){
       const t1=koTeam(m.id,'t1'), t2=koTeam(m.id,'t2');
       const lab1=m.l1||'?', lab2=m.l2||'?';
       const ph1=isPlaceholder(t1), ph2=isPlaceholder(t2);
@@ -2651,6 +2687,11 @@ function renderResultats(){
   const el=document.getElementById('resList');
   const strip=document.getElementById('resStrip');
   if(strip)renderRealScoreStrip(strip);
+  // Mettre à jour le texte de dernière sync à chaque rendu
+  const _last=localStorage.getItem('cdm26-sync-res');
+  const _info=document.getElementById('resSyncInfo');
+  if(_info)_info.textContent=_last?'Dernière sync : '+fmtDate(_last):'';
+  updateGlobalSyncBadge('idle');
 
   if(resTab==='clt'){
     const groups=resGrp==='all'?Object.keys(GRP):[resGrp];
@@ -2663,11 +2704,12 @@ function renderResultats(){
           '<span style="font-size:9px;color:var(--muted)">'+done+'/'+ALL.filter(m=>m.g===g).length+'</span>'+
         '</div>'+
         '<table class="clt-tbl">'+
-          '<thead><tr><th style="text-align:left">#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th></tr></thead>'+
+          '<thead><tr><th style="text-align:left">#</th><th style="text-align:left">Équipe</th><th>J</th><th>DB</th><th>Pts</th></tr></thead>'+
           '<tbody>'+st.map((t,i)=>'<tr class="'+( i<2?'clt-q':'')+'">'+
             '<td style="padding:5px 6px;font-size:10px;color:'+( i===0?'#4caf50':i===1?'#aaa':'var(--muted)')+'">'+( i+1)+'</td>'+
             '<td style="padding:5px 6px;font-size:12px">'+flagImg(t.t,18)+' '+t.t+'</td>'+
             '<td style="padding:5px 6px;text-align:center">'+t.j+'</td>'+
+            '<td style="padding:5px 6px;text-align:center;font-size:11px;color:'+( t.diff>0?'#4caf50':t.diff<0?'var(--red)':'var(--muted)')+'">'+( t.diff>0?'+':'')+t.diff+'</td>'+
             '<td style="padding:5px 6px;text-align:center;font-family:'+"'Bebas Neue',cursive"+';font-size:16px;color:#4caf50">'+t.pts+'</td>'+
           '</tr>').join('')+
           '</tbody>'+
@@ -3042,9 +3084,11 @@ function renderComparaison(){
     return;
   }
   let exact=0,good=0,miss=0,pts=0;
-  const rows=played.map(m=>{
+  // Regrouper par groupe pour affichage structuré
+  const byGroup={};
+  played.forEach(m=>{
     const r=REAL[m.id],p=SC[m.id]||{};
-    if(!r||r.h==='')return'';
+    if(!r||r.h==='')return;
     const rh=parseInt(r.h),ra=parseInt(r.a);
     const ph=parseInt(p.h),pa=parseInt(p.a);
     const realRes=rh>ra?'H':rh<ra?'A':'N';
@@ -3054,16 +3098,37 @@ function renderComparaison(){
       if(ph===rh&&pa===ra){icon='⭐';cls='cmp-ok';score=3;exact++;pts+=3;}
       else if(predRes===realRes){icon='✓';cls='cmp-par';score=1;good++;pts+=1;}
       else{miss++;}
-    } else {miss++;}
-    return`<div class="cmp-row ${cls}">
-      <span class="cmp-icon">${icon}</span>
-      <span class="cmp-teams">${flagImg(m.h,20)} ${m.h} <small>vs</small> ${m.a} ${flagImg(m.a,20)}</span>
-      <span class="cmp-scores">
-        <span class="cmp-pred" title="Pronostic">${isNaN(ph)?'—':ph+':'+pa}</span>
-        <span style="color:var(--muted);font-size:10px">→</span>
-        <span class="cmp-real" title="Résultat">${rh}:${ra}</span>
+    } else {miss++;} // miss = pas de prono du tout
+    if(!byGroup[m.g])byGroup[m.g]={rows:'',exact:0,good:0,miss:0,pts:0};
+    byGroup[m.g].pts+=score;
+    if(score===3)byGroup[m.g].exact++;
+    else if(score===1)byGroup[m.g].good++;
+    else byGroup[m.g].miss++; // inclut sans prono ET mauvais résultat
+    const dateStr=new Date(m.d+'T12:00:00Z').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+    byGroup[m.g].rows+=`<div class="cmp-row ${cls}" style="display:grid;grid-template-columns:28px 1fr auto auto;align-items:center;gap:6px;padding:9px 10px">
+      <span class="cmp-icon" style="font-size:16px;text-align:center">${icon}</span>
+      <span style="font-size:12px">
+        <span style="display:flex;align-items:center;gap:4px">${flagImg(m.h,16)} <b>${m.h}</b> <span style="color:var(--muted);font-size:10px">vs</span> ${m.a} ${flagImg(m.a,16)}</span>
+        <span style="font-size:10px;color:var(--muted)">${dateStr}</span>
       </span>
-      <span class="cmp-pts">+${score}pts</span>
+      <span style="text-align:center;font-size:11px">
+        <span style="color:var(--muted);display:block;font-size:9px;margin-bottom:1px">Prono</span>
+        <span style="font-family:'Bebas Neue',cursive;font-size:15px;color:${isNaN(ph)?'var(--muted)':'var(--text)'}">${isNaN(ph)?'—':ph+':'+pa}</span>
+      </span>
+      <span style="text-align:center;font-size:11px">
+        <span style="color:var(--muted);display:block;font-size:9px;margin-bottom:1px">Réel</span>
+        <span style="font-family:'Bebas Neue',cursive;font-size:15px;color:${score===3?'var(--gold)':score===1?'#4caf50':'var(--text)'}">${rh}:${ra}</span>
+      </span>
+    </div>`;
+  });
+  const groupRows=Object.keys(byGroup).sort().map(g=>{
+    const bg=byGroup[g];
+    return`<div style="margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',cursive;font-size:12px;letter-spacing:2px;color:#4caf50;padding:6px 10px;background:rgba(76,175,80,.07);border-left:3px solid #4caf50;border-radius:4px 0 0 4px;display:flex;justify-content:space-between;align-items:center">
+        <span>GROUPE ${g}</span>
+        <span style="font-size:10px;color:var(--muted)">${bg.exact} exact · ${bg.good} bon · ${bg.pts}pts</span>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:0 8px 8px 8px;overflow:hidden">${bg.rows}</div>
     </div>`;
   }).join('');
   const total=played.length;
@@ -3071,15 +3136,15 @@ function renderComparaison(){
   el.innerHTML=`
     <div class="cmp-kpis">
       <div class="cmp-kpi"><div class="cmp-kv" style="color:var(--gold)">${pts}</div><div class="cmp-kl">Points</div></div>
-      <div class="cmp-kpi"><div class="cmp-kv" style="color:#4caf50">${exact}</div><div class="cmp-kl">Scores exacts</div></div>
-      <div class="cmp-kpi"><div class="cmp-kv" style="color:#2196f3">${good}</div><div class="cmp-kl">Bons résultats</div></div>
-      <div class="cmp-kpi"><div class="cmp-kv" style="color:var(--muted)">${miss}</div><div class="cmp-kl">Ratés</div></div>
-      <div class="cmp-kpi"><div class="cmp-kv">${pct}%</div><div class="cmp-kl">Réussite</div></div>
+      <div class="cmp-kpi"><div class="cmp-kv" style="color:#4caf50">${exact}</div><div class="cmp-kl">⭐ Exacts</div></div>
+      <div class="cmp-kpi"><div class="cmp-kv" style="color:#2196f3">${good}</div><div class="cmp-kl">✓ Bons rés.</div></div>
+      <div class="cmp-kpi"><div class="cmp-kv" style="color:var(--red)">${miss}</div><div class="cmp-kl">✗ Ratés</div></div>
+      <div class="cmp-kpi"><div class="cmp-kv" style="color:${pct>=60?'#4caf50':pct>=40?'var(--gold)':'var(--muted)'}">${pct}%</div><div class="cmp-kl">Réussite</div></div>
     </div>
-    <div style="font-family:'Bebas Neue',cursive;font-size:14px;letter-spacing:2px;color:var(--muted);margin:16px 0 8px">
-      DÉTAIL MATCH PAR MATCH · ⭐ Score exact (+3pts) · ✓ Bon résultat (+1pt)
+    <div style="font-family:'Bebas Neue',cursive;font-size:12px;letter-spacing:2px;color:var(--muted);margin:16px 0 10px;display:flex;gap:16px">
+      <span>⭐ SCORE EXACT +3pts</span><span>✓ BON RÉSULTAT +1pt</span>
     </div>
-    ${rows}
+    ${groupRows}
   `;
 }
 
@@ -3624,6 +3689,27 @@ function importCode(){
     renderLigue();
   }catch(e){toast('❌ Code invalide');}
 }
+let _ligueSortBy = 'pts'; // pts | exact | bon
+function setLigueSort(mode) {
+  _ligueSortBy = mode;
+  refreshLigueClassement();
+}
+
+function refreshLigueClassement() {
+  // Met à jour le timestamp
+  const tsEl = document.getElementById('ligueSyncTime');
+  if (tsEl) {
+    const last = localStorage.getItem('cdm26-sync-res');
+    if (last) {
+      const mins = Math.round((Date.now() - new Date(last).getTime()) / 60000);
+      tsEl.textContent = mins < 1 ? 'À l instant' : mins < 60 ? 'il y a ' + mins + 'min' : Math.floor(mins/60) + 'h';
+    }
+  }
+  // Re-render la ligue (rafraîchit les points depuis REAL/BRP courant)
+  renderLigue();
+  toast('🔄 Classement mis à jour');
+}
+
 function renderLigue(){
   const el=document.getElementById('ligueContent');
   let me=null;try{me=JSON.parse(localStorage.getItem('cdm26-me')||'null');}catch(e){}
@@ -3631,8 +3717,24 @@ function renderLigue(){
   const all=[];
   if(me)all.push({name:me.name+' (moi)',sc:SC,bp:BP,pts:calcLiguePoints(SC,BP),me:true});
   parts.forEach(p=>all.push({name:p.name,sc:p.sc,bp:p.bp||{},pts:calcLiguePoints(p.sc,p.bp||{}),me:false}));
-  all.sort((a,b)=>b.pts-a.pts);
+  // Calcul complet avant tri pour avoir exact/good disponibles
+  all.forEach(p => {
+    p.exact = ALL.filter(m=>{const r=REAL[m.id],pr=p.sc[m.id];return r&&r.h!==''&&pr&&parseInt(pr.h)===parseInt(r.h)&&parseInt(pr.a)===parseInt(r.a);}).length;
+    p.good  = ALL.filter(m=>{const r=REAL[m.id],pr=p.sc[m.id];if(!r||r.h===''||!pr||pr.h==='')return false;const rh=parseInt(r.h),ra=parseInt(r.a),ph=parseInt(pr.h),pa=parseInt(pr.a);if(ph===rh&&pa===ra)return false;return(rh>ra&&ph>pa)||(rh<ra&&ph<pa)||(rh===ra&&ph===pa);}).length;
+  });
+  all.sort((a,b)=>{
+    if(_ligueSortBy==='exact') return b.exact!==a.exact?b.exact-a.exact:b.pts-a.pts;
+    if(_ligueSortBy==='bon')   return b.good!==a.good?b.good-a.good:b.pts-a.pts;
+    return b.pts!==a.pts?b.pts-a.pts:b.exact!==a.exact?b.exact-a.exact:b.good-a.good;
+  });
   window._pjPlayers=all; // cache pour la modal
+  // Initialiser le timestamp de fraîcheur
+  const _lts = localStorage.getItem('cdm26-sync-res');
+  const _ltsEl = document.getElementById('ligueSyncTime');
+  if(_ltsEl && _lts) {
+    const _mins = Math.round((Date.now() - new Date(_lts).getTime()) / 60000);
+    _ltsEl.textContent = _mins < 1 ? 'A l instant' : _mins < 60 ? 'il y a ' + _mins + 'min' : Math.floor(_mins/60) + 'h';
+  }
 
   el.innerHTML=`
     <!-- Mon Profil -->
@@ -3679,13 +3781,23 @@ function renderLigue(){
     <div class="lig-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div class="lig-title" style="margin-bottom:0">🏆 CLASSEMENT DE LA LIGUE</div>
-        <button onclick="exportLiguePDF()" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.3);color:var(--gold);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:5px">📄 PDF</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="ligueSyncTime" style="font-size:10px;color:var(--muted)"></span>
+          <button onclick="refreshLigueClassement()" title="Rafraîchir le classement" style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);color:#4caf50;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer">🔄</button>
+          <button onclick="exportLiguePDF()" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.3);color:var(--gold);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:5px">📄 PDF</button>
+        </div>
       </div>
       ${Object.keys(REAL).length===0?`
         <div style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted)">
           🎮 Le classement s'activera une fois les vrais résultats disponibles via <span style="color:#4caf50;font-weight:700">⚡ API</span>.
         </div>`:''}
-      <div style="display:grid;grid-template-columns:1fr 40px 36px 30px 40px 44px;padding:8px 0 4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2);margin-top:8px">
+      <div style="display:flex;gap:6px;margin-top:8px;margin-bottom:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted);align-self:center">Trier par :</span>
+        <button onclick="setLigueSort('pts')" style="background:${_ligueSortBy==='pts'?'rgba(240,192,64,.2)':'var(--card2)'};border:1px solid ${_ligueSortBy==='pts'?'rgba(240,192,64,.5)':'var(--border2)'};color:${_ligueSortBy==='pts'?'var(--gold)':'var(--muted)'};border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">Points</button>
+        <button onclick="setLigueSort('exact')" style="background:${_ligueSortBy==='exact'?'rgba(240,192,64,.2)':'var(--card2)'};border:1px solid ${_ligueSortBy==='exact'?'rgba(240,192,64,.5)':'var(--border2)'};color:${_ligueSortBy==='exact'?'var(--gold)':'var(--muted)'};border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">⭐ Exacts</button>
+        <button onclick="setLigueSort('bon')" style="background:${_ligueSortBy==='bon'?'rgba(240,192,64,.2)':'var(--card2)'};border:1px solid ${_ligueSortBy==='bon'?'rgba(240,192,64,.5)':'var(--border2)'};color:${_ligueSortBy==='bon'?'var(--gold)':'var(--muted)'};border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">✓ Bons</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 40px 36px 30px 40px 44px;padding:8px 0 4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">
         <span>JOUEUR</span>
         <span style="text-align:center" title="Total points">PTS</span>
         <span style="text-align:center" title="Scores exacts (+3 pts)">⭐</span>
@@ -3865,61 +3977,84 @@ function normName(s){
 }
 // Dictionnaire de traduction noms FR -> noms API (anglais) pour matching résultats
 const TEAM_ALIASES={
-  'mexique':['mexico'],
-  'afrique du sud':['south africa'],
-  'coree du sud':['south korea','korea republic','korea dpr'],
-  'tchequie':['czech republic','czechia'],
-  'canada':['canada'],
-  'bosnie herzegovine':['bosnia and herzegovina','bosnia herzegovina','bosnia'],
-  'qatar':['qatar'],
-  'suisse':['switzerland'],
-  'bresil':['brazil'],
-  'maroc':['morocco'],
-  'haiti':['haiti'],
+  'mexique':['mexico','mex'],
+  'afrique du sud':['south africa','rsa'],
+  'coree du sud':['south korea','korea republic','korea dpr','republic of korea'],
+  'tchequie':['czech republic','czechia','czech republic of','czechia'],
+  'canada':['canada','can'],
+  'bosnie herzegovine':['bosnia and herzegovina','bosnia herzegovina','bosnia','bih'],
+  'qatar':['qatar','qat'],
+  'suisse':['switzerland','swiss'],
+  'bresil':['brazil','brasil'],
+  'maroc':['morocco','mar'],
+  'haiti':['haiti','hat'],
   'ecosse':['scotland'],
-  'etats unis':['united states','usa'],
+  'etats unis':['united states','usa','us','united states of america'],
   'australie':['australia'],
   'paraguay':['paraguay'],
-  'turquie':['turkey','turkiye'],
-  'allemagne':['germany'],
-  'curacao':['curacao'],
-  'equateur':['ecuador'],
-  'pays bas':['netherlands','holland'],
-  'japon':['japan'],
-  'suede':['sweden'],
-  'tunisie':['tunisia'],
-  'egypte':['egypt'],
+  'turquie':['turkey','turkiye','tur'],
+  'allemagne':['germany','ger'],
+  'curacao':['curacao','curaçao'],
+  'equateur':['ecuador','ecu'],
+  'pays bas':['netherlands','holland','nederland'],
+  'japon':['japan','jpn'],
+  'suede':['sweden','swe'],
+  'tunisie':['tunisia','tun'],
+  'egypte':['egypt','egy'],
   'iran':['iran','ir iran'],
-  'nouvelle zelande':['new zealand'],
-  'espagne':['spain'],
-  'arabie saoudite':['saudi arabia'],
-  'cap vert':['cape verde','cabo verde'],
-  'uruguay':['uruguay'],
-  'france':['france'],
-  'irak':['iraq'],
-  'norvege':['norway'],
-  'senegal':['senegal'],
-  'algerie':['algeria'],
-  'argentine':['argentina'],
-  'autriche':['austria'],
-  'jordanie':['jordan'],
-  'portugal':['portugal'],
-  'colombie':['colombia'],
-  'ouzbekistan':['uzbekistan'],
-  'rd congo':['dr congo','congo dr','democratic republic of the congo'],
-  'angleterre':['england'],
-  'croatie':['croatia'],
-  'ghana':['ghana'],
-  'panama':['panama'],
-  'cote d ivoire':['ivory coast','cote d ivoire'],
-  'belgique':['belgium'],
+  'nouvelle zelande':['new zealand','nzl'],
+  'espagne':['spain','esp'],
+  'arabie saoudite':['saudi arabia','ksa'],
+  'cap vert':['cape verde','cabo verde','cape verde islands'],
+  'uruguay':['uruguay','uru'],
+  'france':['france','fra'],
+  'irak':['iraq','irq'],
+  'norvege':['norway','nor'],
+  'senegal':['senegal','sen'],
+  'algerie':['algeria','alg'],
+  'argentine':['argentina','arg'],
+  'autriche':['austria','aut'],
+  'jordanie':['jordan','jor'],
+  'portugal':['portugal','por'],
+  'colombie':['colombia','col'],
+  'ouzbekistan':['uzbekistan','uzb'],
+  'rd congo':['dr congo','congo dr','democratic republic of the congo','drc'],
+  'angleterre':['england','eng'],
+  'croatie':['croatia','cro'],
+  'ghana':['ghana','gha'],
+  'panama':['panama','pan'],
+  'cote d ivoire':['ivory coast','cote d ivoire','cote divoire'],
+  'belgique':['belgium','bel'],
+  'nigeria':['nigeria','nga','nig'],
+  'venezuela':['venezuela','ven'],
+  'chili':['chile','chi'],
+  'perou':['peru','per'],
+  'hondura':['honduras','hon'],
+  'jamaique':['jamaica','jam'],
+  'kenya':['kenya'],
+  'tanzanie':['tanzania'],
+  'mali':['mali'],
+  'cameroun':['cameroon','cam'],
+  'pologne':['poland','pol'],
+  'danemark':['denmark','den'],
+  'hongrie':['hungary','hun'],
+  'serbie':['serbia','srb'],
+  'ukraine':['ukraine','ukr'],
+  'georgie':['georgia','geo'],
+  'roumanie':['romania','rou'],
 };
 function fuzzyTeam(our, api){
   const a=normName(our), b=normName(api);
   if(a===b)return true;
+  // Alias FR->API
   if(TEAM_ALIASES[a]&&TEAM_ALIASES[a].includes(b))return true;
+  // Alias inverse : chercher si 'a' est dans les alias d'une autre clé dont la valeur est 'b'
+  for(const [k,vs] of Object.entries(TEAM_ALIASES)){
+    if(vs.includes(a)&&(k===b||vs.includes(b)))return true;
+  }
+  // Fuzzy word match (mots > 4 chars)
   const wa=a.split(' '), wb=b.split(' ');
-  return wa.some(w=>w.length>3&&b.includes(w)) || wb.some(w=>w.length>3&&a.includes(w));
+  return wa.some(w=>w.length>4&&b.includes(w)) || wb.some(w=>w.length>4&&a.includes(w));
 }
 function fmtDate(iso){
   if(!iso)return'jamais';
@@ -3970,19 +4105,32 @@ function updateAutoRefreshStatus(){
   if(on&&!_autoInterval)_autoInterval=setInterval(doApiSync,5*60*1000);
 }
 
-async function doApiSync(){
+async function doApiSync(retryCount=0){
   const key=document.getElementById('apiKeyInp')?.value.trim()||localStorage.getItem('cdm26-fdkey')||'';
   if(!key){toast('⚠️ Entrez votre clé API dans le panel ⚡ API');closeApiPanel();openApiPanel();return;}
   localStorage.setItem('cdm26-fdkey',key);
   const btn=document.getElementById('apiSyncBtn');
   if(btn){btn.textContent='⏳ Sync...';btn.disabled=true;}
+  updateGlobalSyncBadge('loading');
   try{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),15000);
     const res=await fetch('https://cdm26-proxy.rghiouitariq.workers.dev',{
-      headers:{'X-Auth-Token':key}
+      headers:{'X-Auth-Token':key},
+      signal:controller.signal
     });
-    if(res.status===401){toast('❌ Clé API invalide');return;}
-    if(res.status===403){toast('❌ Accès refusé — vérifiez votre plan');return;}
-    if(!res.ok){toast('❌ Erreur API '+res.status);return;}
+    clearTimeout(timeout);
+    if(res.status===401){toast('❌ Clé API invalide — vérifiez votre clé');updateGlobalSyncBadge('error');return;}
+    if(res.status===403){toast('❌ Accès refusé — vérifiez votre plan API');updateGlobalSyncBadge('error');return;}
+    if(res.status===429){toast('⏳ Limite API atteinte — réessayez dans 1 min');updateGlobalSyncBadge('error');return;}
+    if(res.status>=500&&retryCount<2){
+      toast('⚠️ Proxy indisponible — nouvelle tentative ('+(retryCount+1)+'/2)...');
+      updateGlobalSyncBadge('loading');
+      if(btn){btn.textContent='⏳ Retry '+(retryCount+1)+'/2...';btn.disabled=true;}
+      setTimeout(()=>doApiSync(retryCount+1),3000*(retryCount+1));
+      return; // NE PAS passer par finally — le btn reste désactivé pendant le retry
+    }
+    if(!res.ok){toast('❌ Erreur serveur '+res.status+' — réessayez plus tard');updateGlobalSyncBadge('error');return;}
     const data=await res.json();
     let updated=0, updatedKO=0;
     const totalReceived=(data.matches||[]).length;
@@ -3994,17 +4142,40 @@ async function doApiSync(){
       if(match.score&&match.score.fullTime&&match.score.fullTime.home!==null){
         const apiH=match.homeTeam.name||match.homeTeam.shortName||match.homeTeam.tla||'';
         const apiA=match.awayTeam.name||match.awayTeam.shortName||match.awayTeam.tla||'';
-        const m=ALL.find(function(x){
+        // Chercher dans le sens normal D'ABORD, puis le sens inversé (l'API peut
+        // attribuer home/away différemment du calendrier interne, notamment sur terrain neutre)
+        let m=ALL.find(function(x){
           return fuzzyTeam(x.h,apiH) && fuzzyTeam(x.a,apiA);
         });
-        if(m){REAL[m.id]={h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};updated++;}
-        else{
-          // Fallback: tentative avec shortName si name a échoué
+        let swapped=false;
+        if(!m){
+          m=ALL.find(function(x){
+            return fuzzyTeam(x.h,apiA) && fuzzyTeam(x.a,apiH);
+          });
+          swapped=!!m;
+        }
+        if(m){
+          REAL[m.id]=swapped
+            ? {h:String(match.score.fullTime.away),a:String(match.score.fullTime.home)}
+            : {h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};
+          updated++;
+        } else {
+          // Fallback: tentative avec shortName si name a échoué (sens normal + inversé)
           const apiH2=match.homeTeam.shortName||match.homeTeam.name||'';
           const apiA2=match.awayTeam.shortName||match.awayTeam.name||'';
           if(apiH2!==apiH||apiA2!==apiA){
-            const m2=ALL.find(function(x){return fuzzyTeam(x.h,apiH2)&&fuzzyTeam(x.a,apiA2);});
-            if(m2){REAL[m2.id]={h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};updated++;}
+            let m2=ALL.find(function(x){return fuzzyTeam(x.h,apiH2)&&fuzzyTeam(x.a,apiA2);});
+            let swapped2=false;
+            if(!m2){
+              m2=ALL.find(function(x){return fuzzyTeam(x.h,apiA2)&&fuzzyTeam(x.a,apiH2);});
+              swapped2=!!m2;
+            }
+            if(m2){
+              REAL[m2.id]=swapped2
+                ? {h:String(match.score.fullTime.away),a:String(match.score.fullTime.home)}
+                : {h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};
+              updated++;
+            }
           }
         }
       }
@@ -4106,7 +4277,7 @@ async function doApiSync(){
         if(!match.score||!match.score.fullTime||match.score.fullTime.home===null)return;
         const apiH=match.homeTeam.name||match.homeTeam.shortName||'';
         const apiA=match.awayTeam.name||match.awayTeam.shortName||'';
-        const found=ALL.some(function(x){return fuzzyTeam(x.h,apiH)&&fuzzyTeam(x.a,apiA);});
+        const found=ALL.some(function(x){return (fuzzyTeam(x.h,apiH)&&fuzzyTeam(x.a,apiA))||(fuzzyTeam(x.h,apiA)&&fuzzyTeam(x.a,apiH));});
         if(!found)console.warn('[CDM26] Non mappé: "'+apiH+'" vs "'+apiA+'" — score: '+match.score.fullTime.home+'-'+match.score.fullTime.away);
       });
     }
@@ -4117,10 +4288,49 @@ async function doApiSync(){
     if(id==='home')renderHome();
     updateApiBtn(total);
     toast('✅ '+updated+' groupe(s) · '+updatedKO+' KO · '+totalReceived+' matchs reçus ('+finishedReceived+' terminés)');
+    updateGlobalSyncBadge('ok');
+    // Si on est sur la page ligue, rafraîchir le classement automatiquement
+    if(document.querySelector('#ligue.on')) { renderLigue(); }
   }catch(e){
-    toast('❌ Erreur réseau : '+(e.message||e));
+    if(e.name==='AbortError'){
+      toast('❌ Timeout — le proxy ne répond pas (>15s). Vérifiez votre connexion.');
+    } else {
+      toast('❌ Erreur réseau : '+(e.message||e));
+    }
+    updateGlobalSyncBadge('error');
   }finally{
     if(btn){btn.textContent='⚡ Synchroniser';btn.disabled=false;}
+  }
+}
+
+function updateGlobalSyncBadge(state){
+  const dot=document.getElementById('globalSyncDot');
+  const txt=document.getElementById('globalSyncTxt');
+  if(!dot||!txt)return;
+  const last=localStorage.getItem('cdm26-sync-res');
+  if(state==='loading'){
+    dot.style.background='#f0c040';
+    dot.style.animation='pulse 1s infinite';
+    txt.textContent='Sync...';
+  } else if(state==='ok'){
+    dot.style.background='#4caf50';
+    dot.style.animation='';
+    const mins=last?Math.round((Date.now()-new Date(last).getTime())/60000):0;
+    txt.textContent=mins<1?'Sync OK':mins<60?'Il y a '+mins+'min':'Sync OK';
+  } else if(state==='error'){
+    dot.style.background='#e53935';
+    dot.style.animation='';
+    txt.textContent='Erreur sync';
+  } else {
+    // idle — check last sync
+    if(last){
+      const mins=Math.round((Date.now()-new Date(last).getTime())/60000);
+      dot.style.background=mins<10?'#4caf50':mins<30?'#f0c040':'#888';
+      txt.textContent=mins<1?'Sync OK':mins<60?'Il y a '+mins+'min':Math.floor(mins/60)+'h';
+    } else {
+      dot.style.background='#555';
+      txt.textContent='Non synchro';
+    }
   }
 }
 
@@ -4319,6 +4529,10 @@ window.addEventListener('DOMContentLoaded',function(){
   const last=localStorage.getItem('cdm26-sync-res');
   const info=document.getElementById('resSyncInfo');
   if(info&&last)info.textContent='Dernière sync : '+fmtDate(last);
+  // Init badge synchro global
+  updateGlobalSyncBadge('idle');
+  // Refresh badge toutes les minutes
+  setInterval(()=>updateGlobalSyncBadge('idle'),60000);
 });
 
 function toast(msg){
