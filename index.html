@@ -4081,7 +4081,26 @@ function openApiPanel(){
   if(info)info.textContent=last?'Dernière sync : '+fmtDate(last):'Jamais synchronisé';
   document.getElementById('apiOverlay').classList.add('open');
   document.body.style.overflow='hidden';
+  renderApiDebugZone();
 }
+
+function renderApiDebugZone(){
+  const zone=document.getElementById('apiDebugZone');
+  if(!zone)return;
+  const list=window._cdm26DebugNonMappes||[];
+  if(!list.length){zone.innerHTML='';return;}
+  zone.innerHTML='<div style="background:rgba(232,69,69,.08);border:1px solid rgba(232,69,69,.25);'
+    +'border-radius:8px;padding:10px 12px;margin:8px 0;font-size:11px">'
+    +'<div style="font-weight:700;color:var(--red);margin-bottom:6px">⚠️ '+list.length+' match(s) reçu(s) de l\'API mais non reconnu(s) :</div>'
+    +list.map(function(x){
+      return '<div style="padding:5px 0;border-top:1px solid rgba(255,255,255,.06);color:var(--text)">'
+        +'<div><b>API dit :</b> "'+x.apiH+'" vs "'+x.apiA+'" — score '+x.score+' ('+x.date+')</div>'
+        +'</div>';
+    }).join('')
+    +'<div style="margin-top:8px;font-size:10px;color:var(--muted)">Ces noms d\'équipe ne correspondent à aucun alias connu dans l\'app. Envoie ces noms exacts pour qu\'on les ajoute.</div>'
+    +'</div>';
+}
+
 function closeApiPanel(){
   document.getElementById('apiOverlay').classList.remove('open');
   document.body.style.overflow='';
@@ -4142,17 +4161,40 @@ async function doApiSync(retryCount=0){
       if(match.score&&match.score.fullTime&&match.score.fullTime.home!==null){
         const apiH=match.homeTeam.name||match.homeTeam.shortName||match.homeTeam.tla||'';
         const apiA=match.awayTeam.name||match.awayTeam.shortName||match.awayTeam.tla||'';
-        const m=ALL.find(function(x){
+        // Chercher dans le sens normal D'ABORD, puis le sens inversé (l'API peut
+        // attribuer home/away différemment du calendrier interne, notamment sur terrain neutre)
+        let m=ALL.find(function(x){
           return fuzzyTeam(x.h,apiH) && fuzzyTeam(x.a,apiA);
         });
-        if(m){REAL[m.id]={h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};updated++;}
-        else{
-          // Fallback: tentative avec shortName si name a échoué
+        let swapped=false;
+        if(!m){
+          m=ALL.find(function(x){
+            return fuzzyTeam(x.h,apiA) && fuzzyTeam(x.a,apiH);
+          });
+          swapped=!!m;
+        }
+        if(m){
+          REAL[m.id]=swapped
+            ? {h:String(match.score.fullTime.away),a:String(match.score.fullTime.home)}
+            : {h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};
+          updated++;
+        } else {
+          // Fallback: tentative avec shortName si name a échoué (sens normal + inversé)
           const apiH2=match.homeTeam.shortName||match.homeTeam.name||'';
           const apiA2=match.awayTeam.shortName||match.awayTeam.name||'';
           if(apiH2!==apiH||apiA2!==apiA){
-            const m2=ALL.find(function(x){return fuzzyTeam(x.h,apiH2)&&fuzzyTeam(x.a,apiA2);});
-            if(m2){REAL[m2.id]={h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};updated++;}
+            let m2=ALL.find(function(x){return fuzzyTeam(x.h,apiH2)&&fuzzyTeam(x.a,apiA2);});
+            let swapped2=false;
+            if(!m2){
+              m2=ALL.find(function(x){return fuzzyTeam(x.h,apiA2)&&fuzzyTeam(x.a,apiH2);});
+              swapped2=!!m2;
+            }
+            if(m2){
+              REAL[m2.id]=swapped2
+                ? {h:String(match.score.fullTime.away),a:String(match.score.fullTime.home)}
+                : {h:String(match.score.fullTime.home),a:String(match.score.fullTime.away)};
+              updated++;
+            }
           }
         }
       }
@@ -4246,18 +4288,28 @@ async function doApiSync(retryCount=0){
     const total=updated+updatedKO;
     const nonMappes=finishedReceived-updated;
     if(info)info.textContent='Dernière sync : '+fmtDate(now)+' — '+updated+' groupes, '+updatedKO+' KO ('+totalReceived+' matchs reçus, '+finishedReceived+' terminés)'+(nonMappes>0?' ⚠️ '+nonMappes+' non mappés':'');
-    // Log debug: matchs non mappés
+    // Debug: matchs non mappés — stockés pour affichage dans l'app (console inutilisable sur mobile)
+    window._cdm26DebugNonMappes=[];
     if(nonMappes>0){
-      console.warn('[CDM26] '+nonMappes+' match(s) terminé(s) non mappé(s):');
       (data.matches||[]).forEach(function(match){
         if(match.stage&&match.stage!=='GROUP_STAGE')return;
         if(!match.score||!match.score.fullTime||match.score.fullTime.home===null)return;
         const apiH=match.homeTeam.name||match.homeTeam.shortName||'';
         const apiA=match.awayTeam.name||match.awayTeam.shortName||'';
-        const found=ALL.some(function(x){return fuzzyTeam(x.h,apiH)&&fuzzyTeam(x.a,apiA);});
-        if(!found)console.warn('[CDM26] Non mappé: "'+apiH+'" vs "'+apiA+'" — score: '+match.score.fullTime.home+'-'+match.score.fullTime.away);
+        const found=ALL.some(function(x){return (fuzzyTeam(x.h,apiH)&&fuzzyTeam(x.a,apiA))||(fuzzyTeam(x.h,apiA)&&fuzzyTeam(x.a,apiH));});
+        if(!found){
+          window._cdm26DebugNonMappes.push({
+            apiH:apiH, apiA:apiA,
+            score:match.score.fullTime.home+'-'+match.score.fullTime.away,
+            date:match.utcDate?match.utcDate.slice(0,10):'?'
+          });
+        }
       });
+      if(window._cdm26DebugNonMappes.length){
+        toast('⚠️ '+window._cdm26DebugNonMappes.length+' match(s) non reconnu(s) — touchez le badge ⚡API pour le détail');
+      }
     }
+    renderApiDebugZone();
     // refresh current view
     const id=(document.querySelector('.sec.on')||{}).id;
     if(id==='resultats')renderResultats();
@@ -4942,6 +4994,7 @@ if('serviceWorker' in navigator){
       <button class="btn-sync" id="apiSyncBtn" onclick="doApiSync()" style="flex:1">⚡ Synchroniser</button>
     </div>
     <div id="apiSyncInfo" style="font-size:11px;color:var(--muted);margin-bottom:4px"></div>
+    <div id="apiDebugZone"></div>
     <div style="font-size:10px;color:var(--muted2);border-top:1px solid var(--border2);padding-top:10px;margin-top:4px">
       La sync récupère automatiquement tous les scores terminés et met à jour Résultats Réels + Pronostics.
     </div>
