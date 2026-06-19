@@ -1154,6 +1154,14 @@ let _id=1;
 for(const [g,ms] of Object.entries(SCHED)){
   ms.forEach(m=>{ALL.push({id:'m'+(_id++),g,...m});});
 }
+// Réappliquer les corrections d'horaire (heure française) faites lors d'une sync précédente
+try{
+  const _schedOv=JSON.parse(localStorage.getItem('cdm26-schedule-overrides')||'[]');
+  _schedOv.forEach(function(ov){
+    const m=ALL.find(x=>x.id===ov.id);
+    if(m){m.t=ov.t;m.d=ov.d;}
+  });
+}catch(e){}
 
 // ═══════════════════════════════════════════════════════
 // STATE
@@ -1262,7 +1270,16 @@ function tvBadges(m){
 function matchCard(m){
   const _dmc=m.d?new Date(m.d+'T12:00:00Z'):null;
   const _dmcStr=_dmc?['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][_dmc.getUTCDay()]+'. '+_dmc.getUTCDate()+' '+['jan','fév','mars','avr','mai','juin','juil','août','sep','oct','nov','déc'][_dmc.getUTCMonth()]:'';
-  return'<div class="m-card" style="align-items:stretch;gap:0;padding:0;overflow:hidden">'
+  // Score réel si le match est terminé (synchronisé via l'API)
+  const _r=REAL[m.id];
+  const _played=_r&&_r.h!=='';
+  const _vsBlock=_played
+    ? '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px">'
+      +'<div style="font-family:\'Bebas Neue\',cursive;font-size:19px;letter-spacing:2px;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.35);color:#4caf50;border-radius:7px;padding:3px 8px">'+_r.h+' - '+_r.a+'</div>'
+      +'<span style="font-size:8px;color:#4caf50;font-weight:700;letter-spacing:.5px">TERMINÉ</span>'
+    +'</div>'
+    : '<div class="si-vs">VS</div>';
+  return'<div class="m-card" style="align-items:stretch;gap:0;padding:0;overflow:hidden'+(_played?';border-color:rgba(76,175,80,.25)':'')+'">'
     +'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex-shrink:0;width:66px;padding:10px 6px;background:rgba(0,0,0,.15);border-right:1px solid var(--border2)">'
       +'<div class="m-time" style="width:auto">'+m.t+'</div>'
       +(_dmcStr?'<div style="font-size:9px;color:var(--muted);text-align:center;line-height:1.3">'+_dmcStr+'</div>':'')
@@ -1271,7 +1288,7 @@ function matchCard(m){
     +'</div>'
     +'<div style="flex:1;display:flex;align-items:center;padding:10px 10px;gap:6px">'
       +'<div class="m-team" style="flex:1">'+flagImg(m.h,22)+' '+m.h+'</div>'
-      +'<div class="si-vs">VS</div>'
+      +_vsBlock
       +'<div class="m-team aw" style="flex:1">'+(m.a||'')+' '+flagImg(m.a,22)+'</div>'
     +'</div>'
     +'</div>';
@@ -1758,7 +1775,15 @@ function renderMatches(){
       const ph1=isPlaceholder(t1), ph2=isPlaceholder(t2);
       const dt=m.d?new Date(m.d+'T12:00:00Z'):null;
       const dateStr=dt?`${days[dt.getUTCDay()]}. ${dt.getUTCDate()} ${months[dt.getUTCMonth()]} 2026`:'';
-      html+=`<div class="m-card${(FAVS.has(t1)||FAVS.has(t2))?' m-fav':''}" style="align-items:stretch;gap:0;padding:0;overflow:hidden">
+      const _rko=REAL[m.id];
+      const _playedKo=_rko&&_rko.h!=='';
+      const _vsBlockKo=_playedKo
+        ? `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px">
+            <div style="font-family:'Bebas Neue',cursive;font-size:19px;letter-spacing:2px;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.35);color:#4caf50;border-radius:7px;padding:3px 8px">${_rko.h} - ${_rko.a}</div>
+            <span style="font-size:8px;color:#4caf50;font-weight:700;letter-spacing:.5px">TERMINÉ</span>
+          </div>`
+        : '<div class="si-vs">VS</div>';
+      html+=`<div class="m-card${(FAVS.has(t1)||FAVS.has(t2))?' m-fav':''}" style="align-items:stretch;gap:0;padding:0;overflow:hidden${_playedKo?';border-color:rgba(76,175,80,.25)':''}">
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex-shrink:0;width:66px;padding:10px 6px;background:rgba(0,0,0,.15);border-right:1px solid var(--border2)">
           <div class="m-time" style="width:auto">${m.t||'TBD'}</div>
           <div style="font-size:9px;color:var(--muted);text-align:center;line-height:1.3">${dateStr}</div>
@@ -1770,7 +1795,7 @@ function renderMatches(){
             <span class="m-flag">${ph1?'<span>🏳️</span>':flagImg(t1,20)}</span>
             <span style="${ph1?'color:var(--muted);font-style:italic;font-size:10px;font-weight:400':''}">${t1}</span>
           </div>
-          <div class="si-vs">VS</div>
+          ${_vsBlockKo}
           <div class="m-team aw" style="flex:1">
             <span style="${ph2?'color:var(--muted);font-style:italic;font-size:10px;font-weight:400':''}">${t2}</span>
             <span class="m-flag">${ph2?'<span>🏳️</span>':flagImg(t2,20)}</span>
@@ -1842,6 +1867,21 @@ const ROUNDS=[
     {id:'m104',l1:'V(m101)',l2:'V(m102)',d:'2026-07-19',t:'21h00',v:'MetLife Stadium, New York'},
   ]},
 ];
+// Réappliquer les corrections d'horaire (heure française) faites lors d'une sync précédente
+// (même mécanisme que pour ALL — basé sur des id uniques m1...m104)
+try{
+  const _schedOvKo=JSON.parse(localStorage.getItem('cdm26-schedule-overrides')||'[]');
+  if(_schedOvKo.length){
+    const _ovMap={};
+    _schedOvKo.forEach(o=>{_ovMap[o.id]=o;});
+    ROUNDS.forEach(round=>{
+      round.ms.forEach(m=>{
+        const ov=_ovMap[m.id];
+        if(ov){m.t=ov.t;m.d=ov.d;}
+      });
+    });
+  }
+}catch(e){}
 
 // Équipes réelles des matchs KO (remplies au fil du tournoi)
 let KO={};
@@ -4062,6 +4102,21 @@ function fmtDate(iso){
   return d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 }
 
+// Convertit une date UTC API (ex: "2026-06-20T03:00:00Z") en {date:'2026-06-20', heure:'05h00'}
+// heure française (Europe/Paris), gère automatiquement été/hiver (CEST/CET)
+function utcToFrenchSchedule(utcDateStr){
+  if(!utcDateStr)return null;
+  const d=new Date(utcDateStr);
+  if(isNaN(d.getTime()))return null;
+  // Date au format YYYY-MM-DD en heure de Paris
+  const dateFmt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'});
+  const date=dateFmt.format(d); // en-CA donne directement YYYY-MM-DD
+  // Heure au format HHhMM en heure de Paris
+  const timeFmt=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',hour12:false});
+  const heure=timeFmt.format(d).replace(':','h');
+  return {date,heure};
+}
+
 // ── Résultats Réels (football-data.org) ─────────────────
 // ═══════════════════════════════════════════════════════
 // ⚡ API PANEL
@@ -4140,7 +4195,10 @@ async function doApiSync(retryCount=0){
   try{
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),15000);
-    const res=await fetch('https://cdm26-proxy.rghiouitariq.workers.dev',{
+    // Fenêtre de dates large forcée (toute la compétition) pour éviter qu'un
+    // filtre par défaut côté proxy/API n'exclue des matchs pas encore couverts.
+    const _syncUrl='https://cdm26-proxy.rghiouitariq.workers.dev?dateFrom=2026-06-11&dateTo=2026-07-19';
+    const res=await fetch(_syncUrl,{
       headers:{'X-Auth-Token':key},
       signal:controller.signal
     });
@@ -4160,11 +4218,53 @@ async function doApiSync(retryCount=0){
     let updated=0, updatedKO=0;
     const totalReceived=(data.matches||[]).length;
     const finishedReceived=(data.matches||[]).filter(m=>m.score&&m.score.fullTime&&m.score.fullTime.home!==null).length;
+    // Alerte si la couverture semble trop faible (le proxy filtre peut-être une fenêtre réduite)
+    if(totalReceived>0&&totalReceived<60){
+      toast('⚠️ Seulement '+totalReceived+' match(s) reçu(s) de l\'API — couverture possiblement incomplète (proxy filtré ?)');
+    }
     // Compte spécifique aux matchs de phase de groupe (cohérent avec 'updated')
     const finishedGroupReceived=(data.matches||[]).filter(m=>{
       if(m.stage&&m.stage!=='GROUP_STAGE')return false;
       return m.score&&m.score.fullTime&&m.score.fullTime.home!==null;
     }).length;
+
+    // ── Correction horaires (heure française) ─────────────
+    // Indépendant du score : on corrige l'heure/date affichée pour TOUS les
+    // matchs reçus (joués ou à venir) à partir de l'heure UTC exacte de l'API.
+    let scheduleFixed=0;
+    (data.matches||[]).forEach(function(match){
+      if(!match.utcDate)return;
+      const apiH=match.homeTeam.name||match.homeTeam.shortName||match.homeTeam.tla||'';
+      const apiA=match.awayTeam.name||match.awayTeam.shortName||match.awayTeam.tla||'';
+      let m=ALL.find(function(x){return fuzzyTeam(x.h,apiH)&&fuzzyTeam(x.a,apiA);});
+      if(!m)m=ALL.find(function(x){return fuzzyTeam(x.h,apiA)&&fuzzyTeam(x.a,apiH);});
+      if(!m){
+        // tentative ROUNDS (phase à élim directe) aussi corrigée
+        for(const round of ROUNDS){
+          const rm=round.ms.find(function(x){
+            const t1=koTeam(x.id,'t1'),t2=koTeam(x.id,'t2');
+            return (fuzzyTeam(t1,apiH)&&fuzzyTeam(t2,apiA))||(fuzzyTeam(t1,apiA)&&fuzzyTeam(t2,apiH));
+          });
+          if(rm){m=rm;break;}
+        }
+      }
+      if(m){
+        const sched=utcToFrenchSchedule(match.utcDate);
+        if(sched&&(m.t!==sched.heure||m.d!==sched.date)){
+          m.t=sched.heure;
+          m.d=sched.date;
+          scheduleFixed++;
+        }
+      }
+    });
+    if(scheduleFixed>0){
+      const _allKoMs=[];
+      ROUNDS.forEach(round=>round.ms.forEach(x=>_allKoMs.push(x)));
+      localStorage.setItem('cdm26-schedule-overrides',JSON.stringify(
+        ALL.map(x=>({id:x.id,t:x.t,d:x.d})).concat(_allKoMs.map(x=>({id:x.id,t:x.t,d:x.d})))
+      ));
+      toast('🕐 '+scheduleFixed+' horaire(s) corrigé(s) en heure française');
+    }
 
     // ── Phase de groupes ──────────────────────────────────
     (data.matches||[]).forEach(function(match){
@@ -4326,6 +4426,7 @@ async function doApiSync(retryCount=0){
     if(id==='resultats')renderResultats();
     if(id==='scores')renderPronos();
     if(id==='home')renderHome();
+    if(id==='matches')renderMatches(); // Calendrier — affiche les scores réels synchronisés
     updateApiBtn(total);
     toast('✅ '+updated+' groupe(s) · '+updatedKO+' KO · '+totalReceived+' matchs reçus ('+finishedReceived+' terminés)');
     updateGlobalSyncBadge('ok');
