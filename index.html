@@ -1154,6 +1154,14 @@ let _id=1;
 for(const [g,ms] of Object.entries(SCHED)){
   ms.forEach(m=>{ALL.push({id:'m'+(_id++),g,...m});});
 }
+// Réappliquer les corrections d'horaire (heure française) faites lors d'une sync précédente
+try{
+  const _schedOv=JSON.parse(localStorage.getItem('cdm26-schedule-overrides')||'[]');
+  _schedOv.forEach(function(ov){
+    const m=ALL.find(x=>x.id===ov.id);
+    if(m){m.t=ov.t;m.d=ov.d;}
+  });
+}catch(e){}
 
 // ═══════════════════════════════════════════════════════
 // STATE
@@ -1859,6 +1867,21 @@ const ROUNDS=[
     {id:'m104',l1:'V(m101)',l2:'V(m102)',d:'2026-07-19',t:'21h00',v:'MetLife Stadium, New York'},
   ]},
 ];
+// Réappliquer les corrections d'horaire (heure française) faites lors d'une sync précédente
+// (même mécanisme que pour ALL — basé sur des id uniques m1...m104)
+try{
+  const _schedOvKo=JSON.parse(localStorage.getItem('cdm26-schedule-overrides')||'[]');
+  if(_schedOvKo.length){
+    const _ovMap={};
+    _schedOvKo.forEach(o=>{_ovMap[o.id]=o;});
+    ROUNDS.forEach(round=>{
+      round.ms.forEach(m=>{
+        const ov=_ovMap[m.id];
+        if(ov){m.t=ov.t;m.d=ov.d;}
+      });
+    });
+  }
+}catch(e){}
 
 // Équipes réelles des matchs KO (remplies au fil du tournoi)
 let KO={};
@@ -4079,6 +4102,31 @@ function fmtDate(iso){
   return d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 }
 
+// Convertit une date UTC API (ex: "2026-06-20T03:00:00Z") en {date:'2026-06-20', heure:'05h00'}
+// heure française (Europe/Paris), gère automatiquement été/hiver (CEST/CET)
+// Robuste : n'utilise pas le formatage locale-dépendant du navigateur (évite Android bugs)
+function utcToFrenchSchedule(utcDateStr){
+  if(!utcDateStr)return null;
+  const d=new Date(utcDateStr);
+  if(isNaN(d.getTime()))return null;
+  // Utiliser Intl.DateTimeFormat avec formatToParts pour extraire les composants numériques
+  // de façon fiable quel que soit le navigateur/OS
+  try{
+    const parts=new Intl.DateTimeFormat('en-GB',{
+      timeZone:'Europe/Paris',
+      year:'numeric',month:'2-digit',day:'2-digit',
+      hour:'2-digit',minute:'2-digit',hour12:false
+    }).formatToParts(d);
+    const get=type=>parts.find(p=>p.type===type)?.value||'00';
+    const year=get('year'),month=get('month'),day=get('day');
+    const hour=get('hour'),minute=get('minute');
+    // en-GB hour12:false donne '24' pour minuit sur certains navigateurs → forcer '00'
+    const h=(hour==='24'?'00':hour).padStart(2,'0');
+    const m=minute.padStart(2,'0');
+    return {date:`${year}-${month}-${day}`, heure:`${h}h${m}`};
+  }catch(e){return null;}
+}
+
 // ── Résultats Réels (football-data.org) ─────────────────
 // ═══════════════════════════════════════════════════════
 // ⚡ API PANEL
@@ -4157,7 +4205,10 @@ async function doApiSync(retryCount=0){
   try{
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),15000);
-    const res=await fetch('https://cdm26-proxy.rghiouitariq.workers.dev',{
+    // Fenêtre de dates large forcée (toute la compétition) pour éviter qu'un
+    // filtre par défaut côté proxy/API n'exclue des matchs pas encore couverts.
+    const _syncUrl='https://cdm26-proxy.rghiouitariq.workers.dev?dateFrom=2026-06-11&dateTo=2026-07-19';
+    const res=await fetch(_syncUrl,{
       headers:{'X-Auth-Token':key},
       signal:controller.signal
     });
@@ -4177,11 +4228,53 @@ async function doApiSync(retryCount=0){
     let updated=0, updatedKO=0;
     const totalReceived=(data.matches||[]).length;
     const finishedReceived=(data.matches||[]).filter(m=>m.score&&m.score.fullTime&&m.score.fullTime.home!==null).length;
+    // Alerte si la couverture semble trop faible (le proxy filtre peut-être une fenêtre réduite)
+    if(totalReceived>0&&totalReceived<60){
+      toast('⚠️ Seulement '+totalReceived+' match(s) reçu(s) de l\'API — couverture possiblement incomplète (proxy filtré ?)');
+    }
     // Compte spécifique aux matchs de phase de groupe (cohérent avec 'updated')
     const finishedGroupReceived=(data.matches||[]).filter(m=>{
       if(m.stage&&m.stage!=='GROUP_STAGE')return false;
       return m.score&&m.score.fullTime&&m.score.fullTime.home!==null;
     }).length;
+
+    // ── Correction horaires (heure française) ─────────────
+    // Indépendant du score : on corrige l'heure/date affichée pour TOUS les
+    // matchs reçus (joués ou à venir) à partir de l'heure UTC exacte de l'API.
+    let scheduleFixed=0;
+    (data.matches||[]).forEach(function(match){
+      if(!match.utcDate)return;
+      const apiH=match.homeTeam.name||match.homeTeam.shortName||match.homeTeam.tla||'';
+      const apiA=match.awayTeam.name||match.awayTeam.shortName||match.awayTeam.tla||'';
+      let m=ALL.find(function(x){return fuzzyTeam(x.h,apiH)&&fuzzyTeam(x.a,apiA);});
+      if(!m)m=ALL.find(function(x){return fuzzyTeam(x.h,apiA)&&fuzzyTeam(x.a,apiH);});
+      if(!m){
+        // tentative ROUNDS (phase à élim directe) aussi corrigée
+        for(const round of ROUNDS){
+          const rm=round.ms.find(function(x){
+            const t1=koTeam(x.id,'t1'),t2=koTeam(x.id,'t2');
+            return (fuzzyTeam(t1,apiH)&&fuzzyTeam(t2,apiA))||(fuzzyTeam(t1,apiA)&&fuzzyTeam(t2,apiH));
+          });
+          if(rm){m=rm;break;}
+        }
+      }
+      if(m){
+        const sched=utcToFrenchSchedule(match.utcDate);
+        if(sched&&(m.t!==sched.heure||m.d!==sched.date)){
+          m.t=sched.heure;
+          m.d=sched.date;
+          scheduleFixed++;
+        }
+      }
+    });
+    if(scheduleFixed>0){
+      const _allKoMs=[];
+      ROUNDS.forEach(round=>round.ms.forEach(x=>_allKoMs.push(x)));
+      localStorage.setItem('cdm26-schedule-overrides',JSON.stringify(
+        ALL.map(x=>({id:x.id,t:x.t,d:x.d})).concat(_allKoMs.map(x=>({id:x.id,t:x.t,d:x.d})))
+      ));
+      toast('🕐 '+scheduleFixed+' horaire(s) corrigé(s) en heure française');
+    }
 
     // ── Phase de groupes ──────────────────────────────────
     (data.matches||[]).forEach(function(match){
