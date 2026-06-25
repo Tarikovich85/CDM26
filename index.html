@@ -2649,6 +2649,11 @@ function resolveRealKO(){
 
 // REALK = équipes réelles des matchs KO (calculées depuis classements + BRP)
 let REALK={};
+try{
+  const _rk=JSON.parse(localStorage.getItem('cdm26-realk')||'{}');
+  // Fusionner : REALK peut être partiellement rempli par resolveRealKO() ensuite
+  Object.assign(REALK,_rk);
+}catch(e){}
 
 function realKOTeam(mid,side){
   return(REALK[mid]&&REALK[mid][side])||null;
@@ -2799,10 +2804,26 @@ function renderResultats(){
     const syncedCount=round.ms.filter(m=>BRP[m.id]&&BRP[m.id].winner).length;
     const total=round.ms.length;
 
+    // Compter les équipes déjà qualifiées (connues) pour ce tour
+    const knownTeams=round.ms.reduce((acc,m)=>{
+      const t1=realKOTeam(m.id,'t1'),t2=realKOTeam(m.id,'t2');
+      if(t1&&!isPlaceholder(t1))acc++;
+      if(t2&&!isPlaceholder(t2))acc++;
+      return acc;
+    },0);
+    const totalSlots=round.ms.length*2;
+
     // Bannière état sync
     let banner='';
+    // Bannière qualification (toujours visible si des équipes sont connues)
+    if(knownTeams>0&&knownTeams<totalSlots){
+      banner+='<div style="background:rgba(76,175,80,.06);border:1px solid rgba(76,175,80,.2);border-radius:10px;padding:10px 14px;margin-bottom:10px">'        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'          +'<span style="font-size:11px;font-weight:700;color:#4caf50">🏆 Équipes qualifiées pour ce tour</span>'          +'<span style="font-size:11px;color:#4caf50;font-weight:700">'+knownTeams+' / '+totalSlots+'</span>'        +'</div>'        +'<div style="height:4px;background:rgba(255,255,255,.08);border-radius:4px">'          +'<div style="height:4px;background:#4caf50;border-radius:4px;width:'+Math.round(knownTeams/totalSlots*100)+'%;transition:width .4s"></div>'        +'</div>'      +'</div>';
+    } else if(knownTeams===totalSlots&&syncedCount===0){
+      banner+='<div style="background:rgba(76,175,80,.06);border:1px solid rgba(76,175,80,.2);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">'        +'<span style="font-size:16px">✅</span>'        +'<span style="font-size:11px;font-weight:700;color:#4caf50">Les '+totalSlots+' équipes sont qualifiées — matchs à venir</span>'      +'</div>';
+    }
+
     if(syncedCount===0){
-      banner='<div style="background:rgba(240,192,64,.07);border:1px solid rgba(240,192,64,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">'
+      banner+='<div style="background:rgba(240,192,64,.07);border:1px solid rgba(240,192,64,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">'
         +'<span style="font-size:20px">⚡</span>'
         +'<div><div style="font-size:12px;font-weight:700;color:var(--gold)">En attente des résultats</div>'
         +'<div style="font-size:11px;color:var(--muted);margin-top:2px">Utilisez le bouton <b style="color:var(--gold)">⚡ API</b> pour synchroniser les vrais résultats automatiquement.</div></div>'
@@ -2830,6 +2851,9 @@ function renderResultats(){
       const b=BRP[m.id]||{};
       const hasResult=b.winner&&b.sh!==undefined&&b.sh!=='';
       const typ=b.type||'90';
+      // Badge qualifié : s'affiche si l'équipe est connue (issue des classements réels)
+      const qual1=!ph1&&t1?'<span style="font-size:8px;font-weight:700;color:#4caf50;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle">✓ QUA</span>':'';
+      const qual2=!ph2&&t2?'<span style="font-size:8px;font-weight:700;color:#4caf50;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle">✓ QUA</span>':'';
 
       // Score display
       let scoreBlock='';
@@ -2913,13 +2937,13 @@ function renderResultats(){
           +'<div style="display:flex;align-items:center;gap:6px;flex:1">'
             +(ph1?'<span style="font-size:20px">🏳️</span>':flagImg(disp1,22))
             +' <div>'
-            +'<div style="font-size:13px;font-weight:700;color:'+(b.winner===disp1?'#4caf50':'')+'">'+disp1+'</div>'
-            +(hint1?'<div style="font-size:10px;color:var(--muted)">'+hint1+'</div>':'')
+            +'<div style="font-size:13px;font-weight:700;color:'+(b.winner===disp1?'#4caf50':ph1?'var(--muted)':'')+'">'+disp1+qual1+'</div>'
+            +(hint1&&ph1?'<div style="font-size:10px;color:var(--muted);font-style:italic">'+hint1+'</div>':'')
             +'</div></div>'
           +'<span style="color:var(--muted);font-size:11px;font-weight:700">VS</span>'
           +'<div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end">'
             +'<div style="text-align:right">'
-              +'<div style="font-size:13px;font-weight:700;color:'+(b.winner===disp2?'#4caf50':'')+'">'+disp2+'</div>'
+              +'<div style="font-size:13px;font-weight:700;color:'+(b.winner===disp2?'#4caf50':ph2?'var(--muted)':'')+'">'+disp2+qual2+'</div>'
               +(hint2?'<div style="font-size:10px;color:var(--muted)">'+hint2+'</div>':'')
             +'</div>'
             +(ph2?'<span style="font-size:20px">🏳️</span>':flagImg(disp2,22))
@@ -4402,6 +4426,9 @@ async function doApiSync(retryCount=0){
       }
     });
     localStorage.setItem('cdm26-brp',JSON.stringify(BRP));
+    // Sauvegarder REALK pour affichage persistant des équipes qualifiées
+    resolveRealKO();
+    localStorage.setItem('cdm26-realk',JSON.stringify(REALK));
 
     const now=new Date().toISOString();
     localStorage.setItem('cdm26-sync-res',now);
