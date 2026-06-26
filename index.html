@@ -1823,22 +1823,22 @@ function renderMatches(){
 // 2ème phase — heures en heure française (CEST = UTC+2)
 const ROUNDS=[
   {k:'r16',l:'1/16 de Finale',ms:[
-    {id:'m73', l1:'2A',  l2:'2B',             d:'2026-06-28',t:'21h00',v:'SoFi Stadium, Los Angeles'},
-    {id:'m74', l1:'1E',  l2:'3(A/B/C/D/F)',   d:'2026-06-29',t:'19h00',v:'NRG Stadium, Houston'},
-    {id:'m75', l1:'1F',  l2:'2C',             d:'2026-06-29',t:'23h00',v:'Estadio BBVA, Monterrey'},
-    {id:'m76', l1:'1C',  l2:'2F',             d:'2026-06-30',t:'03h00',v:'MetLife Stadium, New York'},
+    {id:'m73', l1:'2A',  l2:'2B',             d:'2026-06-29',t:'02h00',v:'SoFi Stadium, Los Angeles'},
+    {id:'m74', l1:'1E',  l2:'3(A/B/C/D/F)',   d:'2026-06-30',t:'03h30',v:'Gillette Stadium, Boston'},
+    {id:'m75', l1:'1F',  l2:'2C',             d:'2026-06-30',t:'02h00',v:'Estadio BBVA, Monterrey'},
+    {id:'m76', l1:'1C',  l2:'2F',             d:'2026-06-29',t:'18h00',v:'NRG Stadium, Houston'},
     {id:'m77', l1:'1I',  l2:'3(C/D/F/G/H)',   d:'2026-06-30',t:'23h00',v:'MetLife Stadium, New York'},
-    {id:'m78', l1:'2E',  l2:'2I',             d:'2026-07-01',t:'02h00',v:"Levi's Stadium, San Francisco"},
+    {id:'m78', l1:'2E',  l2:'2I',             d:'2026-06-30',t:'18h00',v:'AT&T Stadium, Dallas'},
     {id:'m79', l1:'1A',  l2:'3(C/E/F/H/I)',   d:'2026-07-01',t:'03h00',v:'Estadio Azteca, Mexico City'},
-    {id:'m80', l1:'1L',  l2:'3(E/H/I/J/K)',   d:'2026-07-01',t:'22h00',v:'AT&T Stadium, Dallas'},
-    {id:'m81', l1:'1D',  l2:'3(B/E/F/I/J)',   d:'2026-07-02',t:'02h00',v:"Levi's Stadium, San Francisco"},
-    {id:'m82', l1:'1G',  l2:'3(A/E/H/I/J)',   d:'2026-07-02',t:'04h00',v:'Arrowhead Stadium, Kansas City'},
-    {id:'m83', l1:'2K',  l2:'2L',             d:'2026-07-03',t:'03h30',v:'Arrowhead Stadium, Kansas City'},
-    {id:'m84', l1:'1H',  l2:'2J',             d:'2026-07-03',t:'22h00',v:'AT&T Stadium, Dallas'},
-    {id:'m85', l1:'1B',  l2:'3(E/F/G/I/J)',   d:'2026-07-04',t:'21h00',v:'SoFi Stadium, Los Angeles'},
-    {id:'m86', l1:'1J',  l2:'2H',             d:'2026-07-05',t:'00h00',v:'Hard Rock Stadium, Miami'},
-    {id:'m87', l1:'1K',  l2:'3(D/E/I/J/L)',   d:'2026-07-06',t:'20h00',v:'AT&T Stadium, Dallas'},
-    {id:'m88', l1:'2D',  l2:'2G',             d:'2026-07-07',t:'04h00',v:'Estadio Azteca, Mexico City'},
+    {id:'m80', l1:'1L',  l2:'3(E/H/I/J/K)',   d:'2026-07-01',t:'18h00',v:'Mercedes-Benz Stadium, Atlanta'},
+    {id:'m81', l1:'1D',  l2:'3(B/E/F/I/J)',   d:'2026-07-02',t:'01h00',v:"Levi's Stadium, San Francisco"},
+    {id:'m82', l1:'1G',  l2:'3(A/E/H/I/J)',   d:'2026-07-02',t:'03h00',v:'Lumen Field, Seattle'},
+    {id:'m83', l1:'2K',  l2:'2L',             d:'2026-07-03',t:'02h30',v:'BMO Field, Toronto'},
+    {id:'m84', l1:'1H',  l2:'2J',             d:'2026-07-03',t:'02h00',v:'SoFi Stadium, Los Angeles'},
+    {id:'m85', l1:'1B',  l2:'3(E/F/G/I/J)',   d:'2026-07-02',t:'18h00',v:'BC Place, Vancouver'},
+    {id:'m86', l1:'1J',  l2:'2H',             d:'2026-07-02',t:'21h00',v:'Hard Rock Stadium, Miami'},
+    {id:'m87', l1:'1K',  l2:'3(D/E/I/J/L)',   d:'2026-07-04',t:'02h30',v:'Arrowhead Stadium, Kansas City'},
+    {id:'m88', l1:'2D',  l2:'2G',             d:'2026-07-03',t:'21h00',v:'AT&T Stadium, Dallas'},
   ]},
   {k:'r8',l:'1/8 de Finale',ms:[
     {id:'m89', l1:'V(m73)', l2:'V(m74)', d:'2026-07-04',t:'19h00',v:'NRG Stadium, Houston'},
@@ -2572,23 +2572,25 @@ function resolveRealKO(){
   const best8r=thirds3.slice(0,8);
   function best3r(rank){return best8r[rank]?best8r[rank].t:null;}
 
+  // Vrais affrontements 1/16 de finale FIFA 2026 (confirmés le 27 juin)
+  // Sources: FIFA.com, Sky Sports, CBS Sports
   const r16r={
-    'm73':{t1:grpRealTeam('A',1),t2:grpRealTeam('B',1)},
-    'm74':{t1:grpRealTeam('E',0),t2:best3r(0)},
-    'm75':{t1:grpRealTeam('F',0),t2:grpRealTeam('C',1)},
-    'm76':{t1:grpRealTeam('C',0),t2:grpRealTeam('F',1)},
-    'm77':{t1:grpRealTeam('I',0),t2:best3r(1)},
-    'm78':{t1:grpRealTeam('E',1),t2:grpRealTeam('I',1)},
-    'm79':{t1:grpRealTeam('A',0),t2:best3r(2)},
-    'm80':{t1:grpRealTeam('L',0),t2:best3r(3)},
-    'm81':{t1:grpRealTeam('D',0),t2:best3r(4)},
-    'm82':{t1:grpRealTeam('G',0),t2:best3r(5)},
-    'm83':{t1:grpRealTeam('K',1),t2:grpRealTeam('L',1)},
-    'm84':{t1:grpRealTeam('H',0),t2:grpRealTeam('J',1)},
-    'm85':{t1:grpRealTeam('B',0),t2:best3r(6)},
-    'm86':{t1:grpRealTeam('J',0),t2:grpRealTeam('H',1)},
-    'm87':{t1:grpRealTeam('K',0),t2:best3r(7)},
-    'm88':{t1:grpRealTeam('D',1),t2:grpRealTeam('G',1)},
+    'm73':{t1:grpRealTeam('A',1), t2:grpRealTeam('B',1)},   // 2e A vs 2e B (Los Angeles)
+    'm74':{t1:grpRealTeam('E',0), t2:best3r(0)},              // 1er E vs meilleur 3e (A/B/C/D/F) (Boston)
+    'm75':{t1:grpRealTeam('F',0), t2:grpRealTeam('C',1)},    // 1er F vs 2e C (Monterrey)
+    'm76':{t1:grpRealTeam('C',0), t2:grpRealTeam('F',1)},    // 1er C vs 2e F (Houston)
+    'm77':{t1:grpRealTeam('I',0), t2:best3r(1)},              // 1er I vs meilleur 3e (C/D/F/G/H) (New York)
+    'm78':{t1:grpRealTeam('E',1), t2:grpRealTeam('I',1)},    // 2e E vs 2e I (Dallas)
+    'm79':{t1:grpRealTeam('A',0), t2:best3r(2)},              // 1er A (Mexique) vs meilleur 3e (C/E/F/H/I) (Mexico City)
+    'm80':{t1:grpRealTeam('L',0), t2:best3r(3)},              // 1er L vs meilleur 3e (E/H/I/J/K) (Atlanta)
+    'm81':{t1:grpRealTeam('D',0), t2:best3r(4)},              // 1er D (USA) vs meilleur 3e (B/E/F/I/J) (San Francisco)
+    'm82':{t1:grpRealTeam('G',0), t2:best3r(5)},              // 1er G vs meilleur 3e (A/E/H/I/J) (Seattle)
+    'm83':{t1:grpRealTeam('K',1), t2:grpRealTeam('L',1)},    // 2e K vs 2e L (Toronto)
+    'm84':{t1:grpRealTeam('H',0), t2:grpRealTeam('J',1)},    // 1er H vs 2e J (Los Angeles)
+    'm85':{t1:grpRealTeam('B',0), t2:best3r(6)},              // 1er B vs meilleur 3e (E/F/G/I/J) (Vancouver)
+    'm86':{t1:grpRealTeam('J',0), t2:grpRealTeam('H',1)},    // 1er J vs 2e H (Miami)
+    'm87':{t1:grpRealTeam('K',0), t2:best3r(7)},              // 1er K vs meilleur 3e (D/E/I/J/L) (Kansas City)
+    'm88':{t1:grpRealTeam('D',1), t2:grpRealTeam('G',1)},    // 2e D vs 2e G (Dallas)
   };
   // Stocker les équipes réelles KO dans REALK
   Object.entries(r16r).forEach(([id,sides])=>{
@@ -2650,9 +2652,17 @@ function resolveRealKO(){
 // REALK = équipes réelles des matchs KO (calculées depuis classements + BRP)
 let REALK={};
 try{
-  const _rk=JSON.parse(localStorage.getItem('cdm26-realk')||'{}');
-  // Fusionner : REALK peut être partiellement rempli par resolveRealKO() ensuite
-  Object.assign(REALK,_rk);
+  // Versionner le cache REALK pour forcer un reset si le bracket a changé
+  const _rkVersion=localStorage.getItem('cdm26-realk-v');
+  const _rkCurrentVersion='2026-06-27-v2'; // incrémenter si bracket modifié
+  if(_rkVersion===_rkCurrentVersion){
+    const _rk=JSON.parse(localStorage.getItem('cdm26-realk')||'{}');
+    Object.assign(REALK,_rk);
+  } else {
+    // Cache périmé ou première fois : on nettoie
+    localStorage.removeItem('cdm26-realk');
+    localStorage.setItem('cdm26-realk-v',_rkCurrentVersion);
+  }
 }catch(e){}
 
 function realKOTeam(mid,side){
