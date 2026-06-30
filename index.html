@@ -1158,7 +1158,7 @@ for(const [g,ms] of Object.entries(SCHED)){
 // Versionné : si le bracket KO a changé depuis, on purge les anciens overrides erronés
 try{
   const _schedOvVersion=localStorage.getItem('cdm26-sched-ov-v');
-  const _schedOvCurrentVersion='2026-06-28-v2'; // bump si confrontations KO modifiées
+  const _schedOvCurrentVersion='2026-06-29-v3'; // bump si confrontations KO modifiées
   if(_schedOvVersion===_schedOvCurrentVersion){
     const _schedOv=JSON.parse(localStorage.getItem('cdm26-schedule-overrides')||'[]');
     _schedOv.forEach(function(ov){
@@ -1854,14 +1854,14 @@ const ROUNDS=[
     {id:'m87', l1:'Colombie',       l2:'Ghana',                d:'2026-07-04',t:'03h30',v:'Arrowhead Stadium, Kansas City'},
   ]},
   {k:'r8',l:'1/8 de Finale',ms:[
-    {id:'m89', l1:'V(m73)', l2:'V(m75)', d:'2026-07-05',t:'01h00',v:'NRG Stadium, Houston'},
-    {id:'m90', l1:'V(m74)', l2:'V(m77)', d:'2026-07-04',t:'23h00',v:'Lincoln Financial Field, Philadelphie'},
+    {id:'m90', l1:'V(m73)', l2:'V(m75)', d:'2026-07-04',t:'19h00',v:'NRG Stadium, Houston'},
+    {id:'m89', l1:'V(m74)', l2:'V(m77)', d:'2026-07-04',t:'23h00',v:'Lincoln Financial Field, Philadelphie'},
     {id:'m91', l1:'V(m76)', l2:'V(m78)', d:'2026-07-05',t:'22h00',v:'MetLife Stadium, New York'},
     {id:'m92', l1:'V(m79)', l2:'V(m80)', d:'2026-07-06',t:'02h00',v:'Estadio Azteca, Mexico'},
     {id:'m93', l1:'V(m83)', l2:'V(m84)', d:'2026-07-06',t:'21h00',v:'AT&T Stadium, Dallas'},
     {id:'m94', l1:'V(m81)', l2:'V(m82)', d:'2026-07-07',t:'02h00',v:'Lumen Field, Seattle'},
     {id:'m95', l1:'V(m86)', l2:'V(m88)', d:'2026-07-07',t:'18h00',v:'Mercedes-Benz Stadium, Atlanta'},
-    {id:'m96', l1:'V(m85)', l2:'V(m87)', d:'2026-07-07',t:'22h00',v:'BC Place, Vancouver'},
+    {id:'m96', l1:'V(m85)', l2:'V(m87)', d:'2026-07-08',t:'00h00',v:'BC Place, Vancouver'},
   ]},
   {k:'r4',l:'Quarts de Finale',ms:[
     {id:'m97', l1:'V(m89)', l2:'V(m90)', d:'2026-07-09',t:'22h00',v:'Gillette Stadium, Boston'},
@@ -1885,7 +1885,7 @@ const ROUNDS=[
 try{
   // Même versionnage que pour ALL — purge auto si bracket KO modifié
   const _schedOvVersionKo=localStorage.getItem('cdm26-sched-ov-v');
-  const _schedOvCurrentVersionKo='2026-06-28-v2';
+  const _schedOvCurrentVersionKo='2026-06-29-v3';
   if(_schedOvVersionKo===_schedOvCurrentVersionKo){
     const _schedOvKo=JSON.parse(localStorage.getItem('cdm26-schedule-overrides')||'[]');
     if(_schedOvKo.length){
@@ -2577,7 +2577,16 @@ function resetPronos(){
 // type    = '90' | 'et' | 'pen'
 // LECTURE SEULE — pas de saisie manuelle
 let BRP={};
-try{BRP=JSON.parse(localStorage.getItem('cdm26-brp')||'{}');}catch(e){}
+try{
+  const _brpVersion=localStorage.getItem('cdm26-brp-v');
+  const _brpCurrentVersion='2026-06-29-v2'; // bump si bug de calcul vainqueur corrigé
+  if(_brpVersion===_brpCurrentVersion){
+    BRP=JSON.parse(localStorage.getItem('cdm26-brp')||'{}');
+  } else {
+    localStorage.removeItem('cdm26-brp');
+    localStorage.setItem('cdm26-brp-v',_brpCurrentVersion);
+  }
+}catch(e){}
 
 // Résolution en cascade des équipes réelles KO depuis BRP
 // (équivalent de resolveKOFromPronos mais pour les vrais résultats)
@@ -2678,7 +2687,7 @@ let REALK={};
 try{
   // Versionner le cache REALK pour forcer un reset si le bracket a changé
   const _rkVersion=localStorage.getItem('cdm26-realk-v');
-  const _rkCurrentVersion='2026-06-28-v4'; // incrémenter si bracket modifié
+  const _rkCurrentVersion='2026-06-29-v5'; // incrémenter si bracket modifié
   if(_rkVersion===_rkCurrentVersion){
     const _rk=JSON.parse(localStorage.getItem('cdm26-realk')||'{}');
     Object.assign(REALK,_rk);
@@ -4395,12 +4404,13 @@ async function doApiSync(retryCount=0){
 
       // Chercher le match KO correspondant dans REALK
       let foundId=null;
+      let foundSwapped=false; // true si l'ordre API est inversé par rapport à REALK
       ALL_KO_MATCH_IDS.forEach(function(mid){
         if(foundId)return;
         const rk=REALK[mid];
         if(!rk||!rk.t1||!rk.t2)return;
-        if(fuzzyTeam(rk.t1,apiHome)&&fuzzyTeam(rk.t2,apiAway))foundId=mid;
-        if(fuzzyTeam(rk.t2,apiHome)&&fuzzyTeam(rk.t1,apiAway))foundId=mid;
+        if(fuzzyTeam(rk.t1,apiHome)&&fuzzyTeam(rk.t2,apiAway)){foundId=mid;foundSwapped=false;}
+        else if(fuzzyTeam(rk.t2,apiHome)&&fuzzyTeam(rk.t1,apiAway)){foundId=mid;foundSwapped=true;}
       });
       // Fallback : chercher par date/heure
       if(!foundId){
@@ -4427,11 +4437,12 @@ async function doApiSync(retryCount=0){
       const pen_h=sc.penalties&&sc.penalties.home!==null?sc.penalties.home:null;
       const pen_a=sc.penalties&&sc.penalties.away!==null?sc.penalties.away:null;
 
-      // Déterminer winner
+      // Déterminer winner — en tenant compte de l'inversion éventuelle home/away
       const rk=REALK[foundId]||{};
-      const homeTeam=rk.t1||apiHome, awayTeam=rk.t2||apiAway;
+      // homeTeam/awayTeam correspondent à apiHome/apiAway respectivement (pas à rk.t1/rk.t2 directement)
+      const homeTeam=foundSwapped?(rk.t2||apiHome):(rk.t1||apiHome);
+      const awayTeam=foundSwapped?(rk.t1||apiAway):(rk.t2||apiAway);
       let winner='', loser='', type='90';
-      let brpSh=String(ft_h), brpSa=String(ft_a);
 
       if(ft_h!==ft_a){
         // Victoire à 90'
@@ -4451,13 +4462,18 @@ async function doApiSync(retryCount=0){
       }
 
       if(winner){
+        // sh/sa doivent correspondre à rk.t1/rk.t2 (pas à apiHome/apiAway) pour cohérence avec le reste de l'app
+        const sh_final=foundSwapped?String(ft_a):String(ft_h);
+        const sa_final=foundSwapped?String(ft_h):String(ft_a);
+        const esh_final=et_h!==null?(foundSwapped?String(et_a):String(et_h)):'';
+        const esa_final=et_a!==null?(foundSwapped?String(et_h):String(et_a)):'';
+        const psh_final=pen_h!==null?(foundSwapped?String(pen_a):String(pen_h)):'';
+        const psa_final=pen_a!==null?(foundSwapped?String(pen_h):String(pen_a)):'';
         BRP[foundId]={
           winner, loser, type,
-          sh:String(ft_h), sa:String(ft_a),
-          esh:et_h!==null?String(et_h):'',
-          esa:et_a!==null?String(et_a):'',
-          psh:pen_h!==null?String(pen_h):'',
-          psa:pen_a!==null?String(pen_a):'',
+          sh:sh_final, sa:sa_final,
+          esh:esh_final, esa:esa_final,
+          psh:psh_final, psa:psa_final,
         };
         updatedKO++;
       }
